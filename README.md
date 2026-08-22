@@ -46,7 +46,7 @@ Developer opens a pull request
       Split and review diff
               |
               v
-      Google Gemini 3.5 Flash Lite
+      Google Gemini 3.5 Flash
               |
               v
  Validate and combine findings
@@ -65,7 +65,7 @@ Both the GitHub Actions workflow and the FastAPI application use the same review
 | GitHub Actions | Pull-request automation |
 | GitHub REST API | Retrieve diffs and post comments |
 | Gemini API | LLM inference |
-| Gemini 3.5 Flash Lite | Default code-review model |
+| Gemini 3.5 Flash | Default code-review model |
 | FastAPI | Optional REST API |
 | Docker | Containerized deployment |
 
@@ -149,7 +149,7 @@ Example request body for `POST /review`:
 | `GITHUB_TOKEN` | Yes | - | Reads pull requests and posts comments |
 | `GEMINI_API_KEY` | Yes | - | Authenticates requests to Gemini |
 | `SERVICE_TOKEN` | API only | - | Authorizes calls to `/review` |
-| `GEMINI_MODEL` | No | `gemini-3.5-flash-lite` | Gemini model used for reviews |
+| `GEMINI_MODEL` | No | `gemini-3.5-flash` | Gemini model used for reviews |
 | `REQUEST_TIMEOUT` | No | `30` | Network timeout in seconds |
 | `DIFF_CHUNK_SIZE` | No | `12000` | Maximum characters in each chunk |
 | `MAX_DIFF_CHUNKS` | No | `5` | Maximum chunks reviewed per pull request |
