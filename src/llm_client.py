@@ -25,7 +25,7 @@ class LLMClient:
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update(
-            {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+            {\n                "Authorization": f"Bearer {api_key}",\n                "Content-Type": "application/json",\n                "Groq-Model-Version": "latest",\n            }
         )
         retry = Retry(
             total=3,
@@ -47,7 +47,7 @@ class LLMClient:
             "temperature": 0.1,
         }
         response = self.session.post(GROQ_URL, json=payload, timeout=self.timeout)
-        response.raise_for_status()
+        if not response.ok:\n            try:\n                error_detail = response.json()\n            except ValueError:\n                error_detail = response.text[:500]\n            raise RuntimeError(\n                f"Groq API request failed ({response.status_code}): {error_detail}"\n            )
         content = response.json()["choices"][0]["message"]["content"]
         try:
             return ReviewResult.from_dict(json.loads(content))
