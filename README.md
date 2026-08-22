@@ -2,7 +2,7 @@
 
 An automated code-review assistant that analyzes GitHub pull requests with a large language model and posts structured feedback directly on the pull request.
 
-I developed this project as part of a Cloud Computing course to explore how LLMs can be integrated into a practical CI/CD workflow. The project combines GitHub Actions, the GitHub REST API, Groq's Llama model, FastAPI, and Docker.
+I developed this project as part of a Cloud Computing course to explore how LLMs can be integrated into a practical CI/CD workflow. The project combines GitHub Actions, the GitHub REST API, Groq-hosted language models, FastAPI, and Docker.
 
 ## What it does
 
@@ -11,7 +11,7 @@ When a pull request is opened or updated, the bot:
 1. Starts automatically through GitHub Actions.
 2. Retrieves the pull-request diff from GitHub.
 3. Splits large diffs into bounded chunks.
-4. Sends each chunk to Llama 3.3 70B through Groq.
+4. Sends each chunk to the configured language model through Groq.
 5. Validates and combines the model responses.
 6. Posts a review containing a summary, severity-tagged findings, and a verdict.
 
@@ -65,7 +65,7 @@ Both the GitHub Actions workflow and the FastAPI application use the same review
 | GitHub Actions | Pull-request automation |
 | GitHub REST API | Retrieve diffs and post comments |
 | Groq API | LLM inference |
-| Llama 3.3 70B | Code-review model |
+| GPT-OSS 20B | Default code-review model |
 | FastAPI | Optional REST API |
 | Docker | Containerized deployment |
 
@@ -149,7 +149,7 @@ Example request body for `POST /review`:
 | `GITHUB_TOKEN` | Yes | - | Reads pull requests and posts comments |
 | `GROQ_API_KEY` | Yes | - | Authenticates requests to Groq |
 | `SERVICE_TOKEN` | API only | - | Authorizes calls to `/review` |
-| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Model used for reviews |
+| `GROQ_MODEL` | No | `openai/gpt-oss-20b` | Model used for reviews |
 | `REQUEST_TIMEOUT` | No | `30` | Network timeout in seconds |
 | `DIFF_CHUNK_SIZE` | No | `12000` | Maximum characters in each chunk |
 | `MAX_DIFF_CHUNKS` | No | `5` | Maximum chunks reviewed per pull request |
@@ -183,5 +183,3 @@ These results describe that specific test run and model configuration. They shou
 - Add fallback support for multiple LLM providers
 - Expand the evaluation dataset and include precision and recall per finding
 - Add integration tests with mocked GitHub and Groq responses
-
-
