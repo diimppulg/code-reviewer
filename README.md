@@ -1,125 +1,187 @@
 # AI Code Review Bot
 
-An LLM-assisted GitHub bot that reviews pull-request diffs and posts structured feedback. GitHub Actions triggers the review, the GitHub API supplies the diff, and Groq's OpenAI-compatible endpoint provides the model response.
+An automated code-review assistant that analyzes GitHub pull requests with a large language model and posts structured feedback directly on the pull request.
 
-> AI review is advisory. A human should verify findings before merging.
+I developed this project as part of a Cloud Computing course to explore how LLMs can be integrated into a practical CI/CD workflow. The project combines GitHub Actions, the GitHub REST API, Groq's Llama model, FastAPI, and Docker.
 
-## Improvements in this version
+## What it does
 
-- One shared implementation powers both GitHub Actions and FastAPI; review logic is no longer duplicated.
-- Model output is validated as structured JSON before it is posted.
-- Large diffs are reviewed in bounded chunks instead of being silently cut at 8,000 characters.
-- Network calls have timeouts and retries for transient failures.
-- Diff content is explicitly treated as untrusted data in the prompt.
-- API requests require a separately configured bearer token.
-- The workflow avoids exposing repository secrets to pull requests from forks.
-- Evaluation requires both a blocking verdict and a relevant concept match. It no longer counts every `REQUEST_CHANGES` response as a detected bug.
-- Documentation does not claim unsupported accuracy results.
+When a pull request is opened or updated, the bot:
 
-## Architecture
+1. Starts automatically through GitHub Actions.
+2. Retrieves the pull-request diff from GitHub.
+3. Splits large diffs into bounded chunks.
+4. Sends each chunk to Llama 3.3 70B through Groq.
+5. Validates and combines the model responses.
+6. Posts a review containing a summary, severity-tagged findings, and a verdict.
 
-1. A same-repository pull request opens, changes, or reopens.
-2. `.github/workflows/review.yml` runs `main.py`.
-3. `GitHubClient` retrieves the pull-request diff.
-4. `split_diff` divides a large diff into bounded review chunks.
-5. `LLMClient` requests and validates one structured review per chunk.
-6. The reviewer deduplicates findings and derives the final verdict.
-7. `GitHubClient` posts one clearly labeled AI review comment.
+Example verdicts are `APPROVE`, `REQUEST_CHANGES`, and `NEEDS_DISCUSSION`.
 
-The FastAPI application uses the same pipeline through `POST /review`.
+> The generated review is advisory and should be verified by a human before merging.
 
-## Repository structure
+## Key features
+
+- Automatic reviews for new and updated pull requests
+- Structured findings with `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, and `STYLE` severity levels
+- Large-diff chunking with a configurable processing limit
+- Response validation before comments are posted
+- Retry and timeout handling for external API calls
+- Basic protection against instructions embedded inside untrusted code diffs
+- FastAPI endpoint for invoking the same review pipeline as a service
+- Docker support for portable deployment
+- Evaluation script for measuring results on test pull requests
+
+## System design
+
+```text
+Developer opens a pull request
+              |
+              v
+       GitHub Actions
+              |
+              v
+   Fetch diff from GitHub API
+              |
+              v
+      Split and review diff
+              |
+              v
+      Groq / Llama 3.3 70B
+              |
+              v
+ Validate and combine findings
+              |
+              v
+ Post review comment on GitHub
+```
+
+Both the GitHub Actions workflow and the FastAPI application use the same review pipeline under `src/`.
+
+## Technology stack
+
+| Technology | Purpose |
+|---|---|
+| Python 3.12 | Core application language |
+| GitHub Actions | Pull-request automation |
+| GitHub REST API | Retrieve diffs and post comments |
+| Groq API | LLM inference |
+| Llama 3.3 70B | Code-review model |
+| FastAPI | Optional REST API |
+| Docker | Containerized deployment |
+
+## Project structure
 
 ```text
 .
-|-- .github/workflows/review.yml
-|-- api.py
-|-- main.py
-|-- evaluate_bot.py
+|-- .github/workflows/review.yml  # GitHub Actions workflow
+|-- api.py                        # FastAPI application
+|-- main.py                       # GitHub Actions entry point
+|-- evaluate_bot.py               # Evaluation utility
+|-- Dockerfile
+|-- requirements.txt
 |-- src/
-|   |-- config.py
-|   |-- github_client.py
-|   |-- llm_client.py
-|   |-- models.py
-|   `-- reviewer.py
+|   |-- config.py                 # Environment configuration
+|   |-- github_client.py          # GitHub API client
+|   |-- llm_client.py             # Groq API client
+|   |-- models.py                 # Review data models
+|   `-- reviewer.py               # Shared review pipeline
 `-- tests/
+    `-- test_reviewer.py
 ```
 
-## GitHub Actions setup
+## Run with GitHub Actions
 
-Add only `GROQ_API_KEY` under **Settings > Secrets and variables > Actions**. The workflow uses GitHub's short-lived `${{ github.token }}` automatically; do not create or commit a personal GitHub token.
+This is the main way to use the project.
 
-No credential values are included in this repository.
+1. Generate an API key from the Groq console.
+2. In the GitHub repository, open **Settings > Secrets and variables > Actions**.
+3. Create a repository secret named `GROQ_API_KEY`.
+4. Create a branch, push a code change, and open a pull request into `main`.
+5. Open the **Actions** tab to monitor the workflow.
+6. Check the pull request for the generated review comment.
 
-## Local CLI
+The workflow uses GitHub's temporary `${{ github.token }}` automatically. No personal GitHub token needs to be committed or added as a repository secret.
 
-Set the required values in your shell environment, then run:
+## Run locally
+
+Install the dependencies:
+
+```bash
+python -m venv .venv
+pip install -r requirements.txt
+```
+
+Provide credentials through environment variables, never through source files:
 
 ```powershell
 $env:GITHUB_TOKEN = "your short-lived GitHub token"
-$env:GROQ_API_KEY = "your Groq key"
+$env:GROQ_API_KEY = "your Groq API key"
 $env:REPO = "owner/repository"
 $env:PR_NUMBER = "1"
 python main.py
 ```
 
-Do not place real values in source files, shell history, screenshots, or commits.
+## Run the API
 
-## FastAPI
-
-The API additionally requires `SERVICE_TOKEN`, a random value used to authorize callers.
+The FastAPI service requires an additional bearer token chosen by the operator:
 
 ```powershell
-$env:SERVICE_TOKEN = "a locally generated random value"
+$env:SERVICE_TOKEN = "a-random-local-value"
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
-Call `POST /review` with `Authorization: Bearer <SERVICE_TOKEN>` and:
+Interactive API documentation is available at `http://localhost:8000/docs`.
+
+Example request body for `POST /review`:
 
 ```json
-{"repo": "owner/repository", "pr_number": 1, "post_comment": true}
+{
+  "repo": "owner/repository",
+  "pr_number": 1,
+  "post_comment": true
+}
 ```
-
-For public deployment, also use HTTPS, network restrictions, rate limiting, and a managed secret store.
 
 ## Configuration
 
-| Variable | Required | Default | Purpose |
+| Variable | Required | Default | Description |
 |---|---:|---:|---|
-| `GITHUB_TOKEN` | Yes | - | Read PRs and post comments |
-| `GROQ_API_KEY` | Yes | - | Authenticate model requests |
-| `SERVICE_TOKEN` | API only | - | Authorize `/review` callers |
-| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Model identifier |
-| `REQUEST_TIMEOUT` | No | `30` | HTTP timeout in seconds |
-| `DIFF_CHUNK_SIZE` | No | `12000` | Maximum characters per chunk |
-| `MAX_DIFF_CHUNKS` | No | `5` | Maximum chunks per review |
+| `GITHUB_TOKEN` | Yes | - | Reads pull requests and posts comments |
+| `GROQ_API_KEY` | Yes | - | Authenticates requests to Groq |
+| `SERVICE_TOKEN` | API only | - | Authorizes calls to `/review` |
+| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Model used for reviews |
+| `REQUEST_TIMEOUT` | No | `30` | Network timeout in seconds |
+| `DIFF_CHUNK_SIZE` | No | `12000` | Maximum characters in each chunk |
+| `MAX_DIFF_CHUNKS` | No | `5` | Maximum chunks reviewed per pull request |
 
-## Tests
+No API keys or credential values are stored in this repository.
+
+## Testing
+
+Run the offline unit tests with:
 
 ```bash
-pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 ```
 
-## Evaluation caveat
+The course evaluation used 20 pull-request scenarios: 18 containing intentional issues and two containing clean code. In that experiment, all 18 intentionally problematic pull requests received blocking verdicts, while both clean examples were also flagged. This produced 18 correct decisions out of 20, or 90% decision accuracy.
 
-The original course experiment reported 18 buggy PRs flagged and two clean PRs incorrectly flagged. That is 18/20 correct decisions (90%), not 20/20. More importantly, the old evaluator treated any `REQUEST_CHANGES` verdict on a buggy PR as successful detection, even when the response might have identified a different problem.
+These results describe that specific test run and model configuration. They should not be treated as a general benchmark. The included evaluator also checks whether a review mentions a concept related to the expected problem instead of counting every blocking verdict as successful detection.
 
-The revised evaluator performs a basic concept match in addition to checking the verdict. This is still only a heuristic. A defensible evaluation should use blinded human annotations, multiple runs, precision/recall by finding, and confidence intervals.
+## Current limitations
 
-Run the lightweight evaluator with:
+- LLM output may include false positives or miss context outside the diff.
+- Reviews exceeding the configured chunk limit are marked incomplete.
+- Feedback is posted as one pull-request comment rather than inline comments.
+- Pull requests from forks are skipped because GitHub does not expose repository secrets to untrusted fork workflows.
+- Model behavior can change, so evaluation should be repeated for each model and prompt version.
 
-```powershell
-$env:GITHUB_TOKEN = "your short-lived GitHub token"
-python evaluate_bot.py --repo owner/repository
-```
+## Future work
 
-Generated evaluation CSV files are ignored by Git to prevent outdated results from being presented as current evidence.
+- Add inline comments on exact changed lines
+- Apply labels based on issue severity
+- Add fallback support for multiple LLM providers
+- Expand the evaluation dataset and include precision and recall per finding
+- Add integration tests with mocked GitHub and Groq responses
 
-## Remaining limitations
-
-- Prompt injection risk can be reduced but not eliminated when an LLM reviews untrusted code.
-- Reviews beyond the configured chunk limit are marked incomplete.
-- Feedback is posted as a single PR comment, not as official GitHub review state or inline annotations.
-- Model behavior may change over time; results must be re-evaluated for the exact model and prompt version.
 
