@@ -77,7 +77,7 @@ class LLMClient:
                     "required": ["summary", "issues", "verdict"],
                     "additionalProperties": False,
                 },
-                "maxOutputTokens": 1800,
+                "maxOutputTokens": 4096,
                 "temperature": 0.1,
             },
         }
