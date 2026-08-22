@@ -46,6 +46,37 @@ class LLMClient:
             ],
             "generationConfig": {
                 "responseMimeType": "application/json",
+                "responseJsonSchema": {
+                    "type": "object",
+                    "properties": {
+                        "summary": {"type": "string"},
+                        "issues": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "severity": {
+                                        "type": "string",
+                                        "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "STYLE"],
+                                    },
+                                    "file": {"type": "string"},
+                                    "line": {
+                                        "anyOf": [{"type": "integer"}, {"type": "null"}]
+                                    },
+                                    "description": {"type": "string"},
+                                },
+                                "required": ["severity", "file", "line", "description"],
+                                "additionalProperties": False,
+                            },
+                        },
+                        "verdict": {
+                            "type": "string",
+                            "enum": ["APPROVE", "REQUEST_CHANGES", "NEEDS_DISCUSSION"],
+                        },
+                    },
+                    "required": ["summary", "issues", "verdict"],
+                    "additionalProperties": False,
+                },
                 "maxOutputTokens": 1800,
                 "temperature": 0.1,
             },
