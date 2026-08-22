@@ -65,7 +65,7 @@ Both the GitHub Actions workflow and the FastAPI application use the same review
 | GitHub Actions | Pull-request automation |
 | GitHub REST API | Retrieve diffs and post comments |
 | Groq API | LLM inference |
-| GPT-OSS 20B | Default code-review model |
+| Groq Compound | Default code-review system |
 | FastAPI | Optional REST API |
 | Docker | Containerized deployment |
 
@@ -149,7 +149,7 @@ Example request body for `POST /review`:
 | `GITHUB_TOKEN` | Yes | - | Reads pull requests and posts comments |
 | `GROQ_API_KEY` | Yes | - | Authenticates requests to Groq |
 | `SERVICE_TOKEN` | API only | - | Authorizes calls to `/review` |
-| `GROQ_MODEL` | No | `openai/gpt-oss-20b` | Model used for reviews |
+| `GROQ_MODEL` | No | `groq/compound` | Model/system used for reviews |
 | `REQUEST_TIMEOUT` | No | `30` | Network timeout in seconds |
 | `DIFF_CHUNK_SIZE` | No | `12000` | Maximum characters in each chunk |
 | `MAX_DIFF_CHUNKS` | No | `5` | Maximum chunks reviewed per pull request |
