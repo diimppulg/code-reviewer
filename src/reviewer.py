@@ -63,7 +63,7 @@ def run_review(repo: str, pr_number: int, settings: Settings, post_comment: bool
     from src.llm_client import LLMClient
 
     github = GitHubClient(settings.github_token, settings.request_timeout)
-    llm = LLMClient(settings.groq_api_key, settings.model, settings.request_timeout)
+    llm = LLMClient(settings.gemini_api_key, settings.model, settings.request_timeout)
     diff = github.get_diff(repo, pr_number)
     if not diff.strip():
         return ReviewResult(summary="No reviewable changes found.", issues=[], verdict=Verdict.approve)
