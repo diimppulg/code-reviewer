@@ -2,7 +2,7 @@
 
 An automated code-review assistant that analyzes GitHub pull requests with a large language model and posts structured feedback directly on the pull request.
 
-I developed this project as part of a Cloud Computing course to explore how LLMs can be integrated into a practical CI/CD workflow. The project combines GitHub Actions, the GitHub REST API, Groq-hosted language models, FastAPI, and Docker.
+I developed this project as part of a Cloud Computing course to explore how LLMs can be integrated into a practical CI/CD workflow. The project combines GitHub Actions, the GitHub REST API, Google Gemini models, FastAPI, and Docker.
 
 ## What it does
 
@@ -11,7 +11,7 @@ When a pull request is opened or updated, the bot:
 1. Starts automatically through GitHub Actions.
 2. Retrieves the pull-request diff from GitHub.
 3. Splits large diffs into bounded chunks.
-4. Sends each chunk to the configured language model through Groq.
+4. Sends each chunk to the configured language model through Gemini.
 5. Validates and combines the model responses.
 6. Posts a review containing a summary, severity-tagged findings, and a verdict.
 
@@ -46,7 +46,7 @@ Developer opens a pull request
       Split and review diff
               |
               v
-      Groq / Llama 3.3 70B
+      Google Gemini 2.5 Flash Lite
               |
               v
  Validate and combine findings
@@ -64,8 +64,8 @@ Both the GitHub Actions workflow and the FastAPI application use the same review
 | Python 3.12 | Core application language |
 | GitHub Actions | Pull-request automation |
 | GitHub REST API | Retrieve diffs and post comments |
-| Groq API | LLM inference |
-| Groq Compound | Default code-review system |
+| Gemini API | LLM inference |
+| Gemini 2.5 Flash Lite | Default code-review model |
 | FastAPI | Optional REST API |
 | Docker | Containerized deployment |
 
@@ -82,7 +82,7 @@ Both the GitHub Actions workflow and the FastAPI application use the same review
 |-- src/
 |   |-- config.py                 # Environment configuration
 |   |-- github_client.py          # GitHub API client
-|   |-- llm_client.py             # Groq API client
+|   |-- llm_client.py             # Gemini API client
 |   |-- models.py                 # Review data models
 |   `-- reviewer.py               # Shared review pipeline
 `-- tests/
@@ -93,9 +93,9 @@ Both the GitHub Actions workflow and the FastAPI application use the same review
 
 This is the main way to use the project.
 
-1. Generate an API key from the Groq console.
+1. Generate a free-tier API key in Google AI Studio.
 2. In the GitHub repository, open **Settings > Secrets and variables > Actions**.
-3. Create a repository secret named `GROQ_API_KEY`.
+3. Create a repository secret named `GEMINI_API_KEY`.
 4. Create a branch, push a code change, and open a pull request into `main`.
 5. Open the **Actions** tab to monitor the workflow.
 6. Check the pull request for the generated review comment.
@@ -115,7 +115,7 @@ Provide credentials through environment variables, never through source files:
 
 ```powershell
 $env:GITHUB_TOKEN = "your short-lived GitHub token"
-$env:GROQ_API_KEY = "your Groq API key"
+$env:GEMINI_API_KEY = "your Gemini API key"
 $env:REPO = "owner/repository"
 $env:PR_NUMBER = "1"
 python main.py
@@ -147,9 +147,9 @@ Example request body for `POST /review`:
 | Variable | Required | Default | Description |
 |---|---:|---:|---|
 | `GITHUB_TOKEN` | Yes | - | Reads pull requests and posts comments |
-| `GROQ_API_KEY` | Yes | - | Authenticates requests to Groq |
+| `GEMINI_API_KEY` | Yes | - | Authenticates requests to Gemini |
 | `SERVICE_TOKEN` | API only | - | Authorizes calls to `/review` |
-| `GROQ_MODEL` | No | `groq/compound` | Model/system used for reviews |
+| `GEMINI_MODEL` | No | `gemini-2.5-flash-lite` | Gemini model used for reviews |
 | `REQUEST_TIMEOUT` | No | `30` | Network timeout in seconds |
 | `DIFF_CHUNK_SIZE` | No | `12000` | Maximum characters in each chunk |
 | `MAX_DIFF_CHUNKS` | No | `5` | Maximum chunks reviewed per pull request |
@@ -182,4 +182,4 @@ These results describe that specific test run and model configuration. They shou
 - Apply labels based on issue severity
 - Add fallback support for multiple LLM providers
 - Expand the evaluation dataset and include precision and recall per finding
-- Add integration tests with mocked GitHub and Groq responses
+- Add integration tests with mocked GitHub and Gemini responses
