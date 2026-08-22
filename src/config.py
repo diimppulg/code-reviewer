@@ -17,7 +17,7 @@ def _positive_int(name: str, default: int) -> int:
 class Settings:
     github_token: str
     gemini_api_key: str
-    model: str = "gemini-3.5-flash"
+    model: str = "gemini-3.5-flash-lite"
     request_timeout: int = 30
     chunk_size: int = 12_000
     max_chunks: int = 5
