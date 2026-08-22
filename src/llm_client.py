@@ -92,7 +92,11 @@ class LLMClient:
                 f"Gemini API request failed ({response.status_code}): {error_detail}"
             )
         try:
-            content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            parts = response.json()["candidates"][0]["content"]["parts"]
+            content = "".join(part.get("text", "") for part in parts).strip()
+            if content.startswith("```"):
+                lines = content.splitlines()
+                content = "\n".join(lines[1:-1]).strip()
             return ReviewResult.from_dict(json.loads(content))
         except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise RuntimeError("Gemini returned an invalid review payload") from exc
