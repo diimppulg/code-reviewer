@@ -17,7 +17,7 @@ def _positive_int(name: str, default: int) -> int:
 class Settings:
     github_token: str
     groq_api_key: str
-    model: str = "openai/gpt-oss-20b"
+    model: str = "groq/compound"
     request_timeout: int = 30
     chunk_size: int = 12_000
     max_chunks: int = 5
